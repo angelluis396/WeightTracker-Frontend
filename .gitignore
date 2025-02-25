@@ -1,0 +1,9 @@
+# React Native / Expo
+node_modules/
+*.log
+.expo/
+dist/
+*.DS_Store
+*.apk
+*.ipa
+.env
