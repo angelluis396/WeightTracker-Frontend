@@ -10,15 +10,12 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post('http://localhost:5000/login', {
-        email,
-        password,
-      });
+      const response = await axios.post('http://192.168.1.169:5000/login', { email, password });
       await SecureStore.setItemAsync('token', response.data.token);
-      setError('');
-      // TODO: Navigate to a home screen later
       console.log('Logged in, token saved!');
+      navigation.navigate('Home');
     } catch (err) {
+      console.error('Login error:', err.response?.data || err.message);
       setError(err.response?.data?.error || 'Login failed');
     }
   };
@@ -26,26 +23,11 @@ export default function LoginScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+      <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} autoCapitalize="none" />
+      <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <Button title="Login" onPress={handleLogin} />
-      <Button
-        title="Need an account? Sign up"
-        onPress={() => navigation.navigate('Signup')}
-      />
+      <Button title="Need an account? Sign up" onPress={() => navigation.navigate('Signup')} />
     </View>
   );
 }
