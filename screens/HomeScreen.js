@@ -1,198 +1,80 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, FlatList, StyleSheet, ScrollView } from 'react-native';
-import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
-import { format } from 'date-fns';
+import { View, Text, TouchableOpacity } from 'react-native';
 
 export default function HomeScreen({ navigation }) {
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [amWeight, setAmWeight] = useState('');
-  const [pmWeight, setPmWeight] = useState('');
-  const [note, setNote] = useState('');
-  const [logs, setLogs] = useState([]);
-  const [averages, setAverages] = useState({});
-  const [error, setError] = useState('');
+  const [averages, setAverages] = useState({ todayAvg: null, yesterdayAvg: null, previousWeekAvg: null });
+  const [entry, setEntry] = useState({ am_weight: null, pm_weight: null });
+  const [isNumberPadDisabled, setIsNumberPadDisabled] = useState(false);
+  const [isNoteModalVisible, setIsNoteModalVisible] = useState(false);
 
-  useEffect(() => {
-    fetchWeights();
-    fetchAverages();
-  }, []);
+  // Placeholder functions (replace with your actual logic)
+  const handleNumberPress = (key) => { console.log(`${key} pressed`); };
+  const handleWeightSave = (period) => { console.log(`${period} weight saved`); };
 
-  const fetchWeights = async () => {
-    try {
-      const token = await SecureStore.getItemAsync('token');
-      const response = await axios.get('http://192.168.1.169:5000/weights', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setLogs(response.data);
-    } catch (err) {
-      console.error('Fetch weights error:', err);
-      setError('Failed to load weights');
-    }
-  };
-
-  const fetchAverages = async () => {
-    try {
-      const token = await SecureStore.getItemAsync('token');
-      const response = await axios.get('http://192.168.1.169:5000/averages', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setAverages(response.data);
-    } catch (err) {
-      console.error('Fetch averages error:', err);
-      setError('Failed to load averages');
-    }
-  };
-
-  const handleSave = async () => {
-    try {
-      const token = await SecureStore.getItemAsync('token');
-      await axios.post(
-        'http://192.168.1.169:5000/weights',
-        { date, am_weight: parseFloat(amWeight) || null, pm_weight: parseFloat(pmWeight) || null, note },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setAmWeight('');
-      setPmWeight('');
-      setNote('');
-      setError('');
-      fetchWeights();
-      fetchAverages();
-    } catch (err) {
-      console.error('Save weight error:', err);
-      setError('Failed to save weight');
-    }
-  };
-
-  const renderWeightEntry = ({ item }) => {
-    const formattedDate = format(new Date(item.date), 'MMM dd');
-    const amText = item.am_weight ? `AM: ${item.am_weight}` : null;
-    const pmText = item.pm_weight ? `PM: ${item.pm_weight}` : null;
-    const weightText = [amText, pmText].filter(Boolean).join(' | ') || 'No weights';
-    const noteText = item.note ? `Note: ${item.note}` : null;
-
-    return (
-      <View style={styles.logItem}>
-        <Text style={styles.logDate}>{formattedDate}</Text>
-        <Text style={styles.logWeights}>{weightText}</Text>
-        {noteText && <Text style={styles.logNote}>{noteText}</Text>}
-      </View>
-    );
-  };
+  const numberPadOrder = [
+    '7', '8', '9', '📓1', // Notebook 1
+    '4', '5', '6', '📓2', // Notebook 2
+    '1', '2', '3', '🔒',  // Lock
+    '0', '.', 'AM', 'PM'
+  ];
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Weight Tracker</Text>
+      {/* Averages Display */}
+      <View style={styles.displayContainer}>
+        <Text style={styles.displayText}>Weight Entry</Text>
+        <View style={styles.averagesContainer}>
+          <Text style={styles.averageText}>
+            Today: {averages.todayAvg !== null ? averages.todayAvg : 'N/A'}
+          </Text>
+          <Text style={styles.averageText}>
+            Yesterday: {averages.yesterdayAvg !== null ? averages.yesterdayAvg : 'N/A'}
+          </Text>
+          <Text style={styles.averageText}>
+            Last Week: {averages.previousWeekAvg !== null ? averages.previousWeekAvg : 'N/A'}
+          </Text>
+        </View>
+      </View>
 
-      {/* Averages Section */}
-      <ScrollView style={styles.averagesContainer}>
-        <Text style={styles.sectionTitle}>Your Averages</Text>
-        {averages.oneDayAvg && (
-          <Text style={styles.average}>Today's Average: {averages.oneDayAvg} lbs</Text>
-        )}
-        {averages.twoDayAvg && (
-          <Text style={styles.average}>2-Day Average: {averages.twoDayAvg} lbs</Text>
-        )}
-        {averages.threeDayAvg && (
-          <Text style={styles.average}>3-Day Average: {averages.threeDayAvg} lbs</Text>
-        )}
-        {averages.fourDayAvg && (
-          <Text style={styles.average}>4-Day Average: {averages.fourDayAvg} lbs</Text>
-        )}
-        {averages.fiveDayAvg && (
-          <Text style={styles.average}>5-Day Average: {averages.fiveDayAvg} lbs</Text>
-        )}
-        {averages.sixDayAvg && (
-          <Text style={styles.average}>6-Day Average: {averages.sixDayAvg} lbs</Text>
-        )}
-        {averages.oneWeekAvg && (
-          <Text style={styles.average}>1-Week Average: {averages.oneWeekAvg} lbs</Text>
-        )}
-        {averages.oneMonthAvg && (
-          <Text style={styles.average}>1-Month Average: {averages.oneMonthAvg} lbs</Text>
-        )}
-        {averages.threeMonthAvg && (
-          <Text style={styles.average}>3-Month Average: {averages.threeMonthAvg} lbs</Text>
-        )}
-        {averages.oneYearAvg && (
-          <Text style={styles.average}>1-Year Average: {averages.oneYearAvg} lbs</Text>
-        )}
-        {Object.keys(averages).every(key => !averages[key]) && (
-          <Text style={styles.empty}>No averages available yet.</Text>
-        )}
-      </ScrollView>
-
-      {/* Weight Logs Section */}
-      <FlatList
-        data={logs}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderWeightEntry}
-        ListEmptyComponent={<Text style={styles.empty}>No weight entries yet.</Text>}
-        style={styles.logsList}
-      />
-
-      {/* Add New Entry Section */}
-      <View style={styles.inputContainer}>
-        <Text style={styles.inputLabel}>Add New Entry</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Date (YYYY-MM-DD)"
-          value={date}
-          onChangeText={setDate}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="AM Weight"
-          value={amWeight}
-          onChangeText={setAmWeight}
-          keyboardType="numeric"
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="PM Weight"
-          value={pmWeight}
-          onChangeText={setPmWeight}
-          keyboardType="numeric"
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Note (optional)"
-          value={note}
-          onChangeText={setNote}
-        />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button title="Save Weight" onPress={handleSave} />
+      {/* Calculator Grid */}
+      <View style={styles.numberPad}>
+        {numberPadOrder.map((key, index) => {
+          const isNotebook1 = key === '📓1';
+          const isNotebook2 = key === '📓2';
+          const isLock = key === '🔒';
+          const isAMButton = key === 'AM';
+          const isPMButton = key === 'PM';
+          const isDisabled = isNumberPadDisabled || (isAMButton && entry?.am_weight) || (isPMButton && entry?.pm_weight);
+          return (
+            <TouchableOpacity
+              key={index}
+              style={[styles.numberButton, isDisabled && { opacity: 0.5 }]}
+              onPress={() => {
+                if (isDisabled) return;
+                if (isNotebook1 || isNotebook2) setIsNoteModalVisible(true);
+                else if (isLock) console.log('Lock pressed');
+                else if (isAMButton) handleWeightSave('AM');
+                else if (isPMButton) handleWeightSave('PM');
+                else handleNumberPress(key);
+              }}
+              disabled={isDisabled}
+            >
+              <Text style={styles.numberText}>{key}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
-  averagesContainer: { marginBottom: 20, maxHeight: 150 }, // Limit height for scrolling
-  sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 10 },
-  average: { fontSize: 16, color: '#333', marginVertical: 2 },
-  logsList: { flex: 1, marginBottom: 20 },
-  inputContainer: { borderTopWidth: 1, borderColor: '#ccc', paddingTop: 10 },
-  inputLabel: { fontSize: 18, fontWeight: '600', marginBottom: 10 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    padding: 10,
-    marginVertical: 5,
-    backgroundColor: '#fff',
-  },
-  error: { color: 'red', textAlign: 'center', marginVertical: 10 },
-  logItem: {
-    padding: 10,
-    marginVertical: 5,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 5,
-  },
-  logDate: { fontSize: 16, fontWeight: 'bold' },
-  logWeights: { fontSize: 14, color: '#333' },
-  logNote: { fontSize: 12, color: '#666', marginTop: 2 },
-  empty: { textAlign: 'center', color: '#666', marginTop: 20 },
-});
+const styles = {
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
+  displayContainer: { alignItems: 'center', marginBottom: 20 },
+  displayText: { fontSize: 24, color: '#fff' },
+  averagesContainer: { marginTop: 10 },
+  averageText: { fontSize: 16, color: '#ccc' },
+  numberPad: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', width: '80%' },
+  numberButton: { width: '22%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#333', borderRadius: 10, margin: 5 },
+  numberText: { fontSize: 20, color: '#fff' },
+};

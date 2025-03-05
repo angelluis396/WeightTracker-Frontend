@@ -1,21 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import * as Device from 'expo-device';
 
 export default function SignupScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    const setDeviceId = async () => {
+      const deviceId = Device.deviceName || `${Device.osName}-${Device.osVersion}`;
+      await SecureStore.setItemAsync('deviceId', deviceId);
+    };
+    setDeviceId();
+  }, []);
+
   const handleSignup = async () => {
     try {
-      const response = await axios.post('http://192.168.1.169:5000/signup', { email, password });
+      const deviceId = await SecureStore.getItemAsync('deviceId');
+      const response = await axios.post(
+        'http://192.168.1.169:5000/signup',
+        { email, password },
+        { headers: { 'x-device-id': deviceId } }
+      );
       await SecureStore.setItemAsync('token', response.data.token);
       console.log('Signed up, token saved!');
       navigation.navigate('Home');
     } catch (err) {
-      console.error('Signup error:', err.response?.data || err.message);
       setError(err.response?.data?.error || 'Signup failed');
     }
   };
